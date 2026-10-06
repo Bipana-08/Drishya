@@ -2,15 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { districts, getDistrict } from "@/data/districts";
-import { poisForDistrict } from "@/data/sample-pois";
 import { DistrictMapLoader } from "@/components/district-map/DistrictMapLoader";
-import type { PoiCategory } from "@/lib/types";
+import {
+  getDestinationsForDistrict,
+  getMappableDestinations,
+} from "@/lib/db/destinations";
 
-const CATEGORY_HEADING: Record<PoiCategory, string> = {
-  guide: "Guides",
-  stay: "Stays",
-  "hidden-gem": "Hidden gems",
-};
+export const revalidate = 3600;
 
 // Prerender all nine district pages at build time.
 export function generateStaticParams() {
@@ -37,9 +35,13 @@ export default async function DistrictPage({
   const district = getDistrict(slug);
   if (!district) notFound();
 
-  const pois = poisForDistrict(district.id);
-  const countFor = (cat: PoiCategory) =>
-    pois.filter((p) => p.category === cat).length;
+  const [destinations, mappableDestinations] = await Promise.all([
+    getDestinationsForDistrict(district.id),
+    getMappableDestinations(district.id),
+  ]);
+  const hiddenGemCount = destinations.filter(
+    (destination) => destination.hiddenGem,
+  ).length;
 
   return (
     // The dock floats, so pages pad themselves clear of it.
@@ -82,28 +84,76 @@ export default async function DistrictPage({
       </header>
 
       <section className="mt-6">
-        <DistrictMapLoader district={district} />
+        <DistrictMapLoader
+          district={district}
+          destinations={mappableDestinations}
+        />
       </section>
 
-      {/* Sample counts today; wired to real guide/stay/gem records in a later phase. */}
       <section className="mt-8 grid gap-4 sm:grid-cols-3">
-        {(Object.keys(CATEGORY_HEADING) as PoiCategory[]).map((cat) => (
-          <div key={cat} className="glass glass-card rounded-2xl p-5">
+        {[
+          ["Destinations", destinations.length],
+          ["Hidden gems", hiddenGemCount],
+          ["Mapped on map", mappableDestinations.length],
+        ].map(([label, count]) => (
+          <div key={label} className="glass glass-card rounded-2xl p-5">
             <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
-              {CATEGORY_HEADING[cat]}
+              {label}
             </h2>
             <p className="font-display mt-1 text-3xl font-semibold text-ink">
-              {countFor(cat)}
+              {count}
             </p>
-            <p className="text-sm text-ink/60">sample marker(s) on the map</p>
           </div>
         ))}
       </section>
 
-      <p className="glass mt-8 rounded-2xl p-5 text-sm text-ink/60">
-        History, culture, safety and destination content for {district.name} will
-        live here — added by the content team in a later phase.
-      </p>
+      <section className="mt-8">
+        <h2 className="font-display text-3xl font-semibold text-ink">
+          Destinations
+        </h2>
+        {destinations.length === 0 ? (
+          <p className="glass mt-4 rounded-2xl p-5 text-sm text-ink/60">
+            Content coming soon for {district.name}.
+          </p>
+        ) : (
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            {destinations.map((destination) => (
+              <Link
+                key={destination.id}
+                href={`/districts/${district.slug}/${destination.slug}`}
+                className="glass glass-card rounded-2xl p-5 transition-transform hover:-translate-y-0.5"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <h3 className="font-display text-2xl font-semibold text-ink">
+                    {destination.name}
+                  </h3>
+                  {destination.hiddenGem && (
+                    <span className="shrink-0 rounded-full bg-brass px-2.5 py-1 text-xs font-semibold text-forest">
+                      Hidden gem
+                    </span>
+                  )}
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {destination.category.map((category) => (
+                    <span
+                      key={category}
+                      className="rounded-full border border-line px-2.5 py-1 text-xs text-muted"
+                    >
+                      {category}
+                    </span>
+                  ))}
+                </div>
+                <p className="mt-3 text-sm leading-relaxed text-ink/70">
+                  {destination.shortDescription}
+                </p>
+                <p className="mt-4 text-sm font-medium text-accent-ink">
+                  Budget: {destination.budget} →
+                </p>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
     </main>
   );
 }
