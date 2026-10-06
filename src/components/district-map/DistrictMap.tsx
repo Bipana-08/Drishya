@@ -14,27 +14,20 @@ import {
 } from "react-leaflet";
 import type { Feature, Geometry } from "geojson";
 import type {
+  Destination,
   District,
   DistrictFeatureCollection,
   DistrictFeatureProperties,
-  PoiCategory,
 } from "@/lib/types";
-import { poisForDistrict } from "@/data/sample-pois";
 
-/*
- * Marker colours follow the palette's roles: forest for guides, slate-teal for
- * stays, brass for hidden gems (the palette's named "hidden gem" accent).
- */
-const CATEGORY_COLOR: Record<PoiCategory, string> = {
-  guide: "var(--color-forest)",
-  stay: "var(--color-slate)",
-  "hidden-gem": "var(--color-brass)",
+const MARKER_COLOR = {
+  destination: "var(--color-forest)",
+  hiddenGem: "var(--color-brass)",
 };
 
-const CATEGORY_LABEL: Record<PoiCategory, string> = {
-  guide: "Guides",
-  stay: "Stays",
-  "hidden-gem": "Hidden gems",
+const MARKER_LABEL = {
+  destination: "Destination",
+  hiddenGem: "Hidden gem",
 };
 
 /** Fits the map viewport to the district polygon once it has loaded. */
@@ -49,13 +42,19 @@ function FitToFeature({ feature }: { feature: Feature }) {
   return null;
 }
 
-export default function DistrictMap({ district }: { district: District }) {
+export default function DistrictMap({
+  district,
+  destinations,
+  compact = false,
+}: {
+  district: District;
+  destinations: Destination[];
+  compact?: boolean;
+}) {
   const [feature, setFeature] = useState<Feature<
     Geometry,
     DistrictFeatureProperties
   > | null>(null);
-  const pois = poisForDistrict(district.id);
-
   useEffect(() => {
     let cancelled = false;
     fetch("/data/sudurpaschim-districts.simplified.geojson")
@@ -73,7 +72,11 @@ export default function DistrictMap({ district }: { district: District }) {
   }, [district.id]);
 
   return (
-    <div className="relative h-[65vh] min-h-[420px] w-full overflow-hidden rounded-2xl border border-line">
+    <div
+      className={`relative w-full overflow-hidden rounded-2xl border border-line ${
+        compact ? "h-72" : "h-[65vh] min-h-[420px]"
+      }`}
+    >
       <MapContainer
         center={district.center}
         zoom={9}
@@ -98,29 +101,34 @@ export default function DistrictMap({ district }: { district: District }) {
             <FitToFeature feature={feature} />
           </>
         )}
-        {pois.map((poi) => (
+        {destinations.map((destination) => (
           <CircleMarker
-            key={poi.id}
-            center={poi.position}
+            key={destination.id}
+            center={destination.position!}
             radius={8}
             pathOptions={{
               color: "var(--color-dock-text)",
               weight: 2,
-              fillColor: CATEGORY_COLOR[poi.category],
+              fillColor: destination.hiddenGem
+                ? MARKER_COLOR.hiddenGem
+                : MARKER_COLOR.destination,
               fillOpacity: 1,
             }}
           >
             <Tooltip direction="top" offset={[0, -6]}>
-              {poi.name}
+              {destination.name}
             </Tooltip>
             <Popup>
-              <strong>{poi.name}</strong>
+              <strong>{destination.name}</strong>
               <br />
-              <span style={{ textTransform: "capitalize" }}>
-                {poi.category.replace("-", " ")}
-              </span>
+              <span>{destination.shortDescription}</span>
               <br />
-              {poi.description}
+              <a
+                href={`/districts/${district.slug}/${destination.slug}`}
+                style={{ color: "var(--color-brass-ink)" }}
+              >
+                View destination
+              </a>
             </Popup>
           </CircleMarker>
         ))}
@@ -131,15 +139,17 @@ export default function DistrictMap({ district }: { district: District }) {
           Legend
         </p>
         <ul className="space-y-1">
-          {(Object.keys(CATEGORY_LABEL) as PoiCategory[]).map((c) => (
+          {(Object.keys(MARKER_LABEL) as (keyof typeof MARKER_LABEL)[]).map(
+            (c) => (
             <li key={c} className="flex items-center gap-2 text-ink/80">
               <span
                 className="inline-block h-2.5 w-2.5 rounded-full"
-                style={{ backgroundColor: CATEGORY_COLOR[c] }}
+                style={{ backgroundColor: MARKER_COLOR[c] }}
               />
-              {CATEGORY_LABEL[c]}
+              {MARKER_LABEL[c]}
             </li>
-          ))}
+            ),
+          )}
         </ul>
       </div>
     </div>
