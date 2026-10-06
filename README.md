@@ -1,111 +1,198 @@
 # Drishya
 
-An interactive, AI-assisted tourism platform for Nepal's **Sudurpaschim Province**.
-This repository currently contains the **map foundation** — an interactive district
-map — that the rest of the platform (guides, RAG assistant, blog, cultural sections)
-will build on.
+Drishya is an interactive tourism platform for Sudurpaschim Province, Nepal. The project blends a scroll-driven hero map, district detail pages, and a structured destination data layer for a more compelling travel discovery experience across the nine districts of the province.
+
+This repo already includes the core product foundation: a landing experience with the province map, district routing, a Prisma-backed destination model, and the data access layer that UI pages use instead of directly touching the database.
+
+## What is built
+
+- Province-wide landing experience with a pinned hero map and district listing
+- District detail pages with page-level routing and structured content
+- Client-side Leaflet maps for district geography and map markers
+- Prisma + Postgres data model for destinations, with serializable server-safe accessors
+- Seed data and map assets for Sudurpaschim province
+- Prepared structure for later guide connections, blog pages, and AI assistant features
 
 ## Stack
 
-- **Next.js 16** (App Router) + **React 19** + **TypeScript**
-- **Tailwind CSS v4** (CSS-based config — see `src/app/globals.css`)
-- **motion** (Framer Motion) for the hero animations
-- **Leaflet 1.9 + react-leaflet 5** for the geographic district maps
+- Next.js 16 (App Router)
+- React 19
+- TypeScript
+- Tailwind CSS v4
+- Framer Motion (`motion`)
+- Leaflet + react-leaflet
+- Prisma 7 + PostgreSQL/Neon
 
-## Getting started
+## Local setup
+
+1. Install dependencies:
 
 ```bash
 npm install
 ```
 
+2. Configure your environment variables in `.env.local`:
+
+```bash
+DATABASE_URL="postgresql://..."
+DIRECT_URL="postgresql://..."
+```
+
+3. Start the app:
+
 ```bash
 npm run dev
 ```
 
-Then open http://localhost:3000.
+Open http://localhost:3000.
 
-To produce a production build (prerenders all 9 district pages):
+## Useful commands
 
 ```bash
+npm run dev
+npm run dev:lan
 npm run build
+npm run start
+npx tsc --noEmit
+npx prisma generate
+npx prisma studio
+npx prisma migrate dev --name <name>
+npx prisma db seed
 ```
 
-## The hybrid map architecture
+## Database and content model
 
-Two complementary map layers, by design:
+The app is designed around a PostgreSQL data layer rather than scattered mock data in the UI.
 
-1. **Landing hero — custom interactive SVG** (`src/components/hero-map/HeroMap.tsx`).
-   One district at a time, editorial and illustrated. Each district is an SVG
-   `<path>` from `src/data/sudurpaschim-svg.json`; because all 9 share one
-   coordinate space, an animated `viewBox` acts as a **camera** that pans/zooms
-   to the selected district (`src/lib/pathBounds.ts` computes the framing).
-   The selected district gets an ink outline that traces itself on, a hatch
-   overlay and its landmarks (`src/data/landmarks.ts`) fading in; neighbours dim.
-   Hovering a neighbour warms and lifts it and names it in a corner chip;
-   clicking frames it, clicking the framed district opens its page. Driven by
-   the bottom **district ruler** (`hero-map/DistrictNav.tsx`) — click or hover a
-   tick, or use ←/→ and Enter on the focused stage. Honours
-   `prefers-reduced-motion`, and hover states are suppressed for touch input.
+- Destination records are defined in Prisma and exposed through `src/lib/db/destinations.ts`
+- Pages and components consume plain serializable `Destination` objects from that layer
+- The shared content shape lives in `src/lib/types.ts`
+- Content data is seeded from the Prisma seed scripts and district source files under `prisma/data/`
 
-2. **District pages — react-leaflet + GeoJSON** (`src/components/district-map/`).
-   A real geographic map (OpenStreetMap tiles) that draws the district boundary from
-   `public/data/sudurpaschim-districts.simplified.geojson` and plots markers for
-   guides, stays and hidden gems. Loaded client-only (`ssr: false`) because Leaflet
-   needs `window`.
+Important rule from the project guide: UI code should only import destination data from the data-access layer, not directly from Prisma or the raw seed source files.
+
+## Architecture overview
+
+### 1) Hero landing map
+
+The landing page uses a custom SVG-driven map in `src/components/hero-map/`.
+
+- Districts are represented by SVG paths from `src/data/sudurpaschim-svg.json`
+- Camera framing is calculated via `src/lib/pathBounds.ts` and `src/lib/heroCamera.ts`
+- The district navigation and scroll interaction live in `src/components/hero-map/HeroMap.tsx` and `DistrictNav.tsx`
+- This is intentionally separate from the district-page map, which uses real geographic geometry
+
+### 2) District pages and map layer
+
+District detail screens are routed under `src/app/districts/[slug]/` and use Leaflet for geo-aware map rendering.
+
+- Map data is served from `public/data/sudurpaschim-districts.simplified.geojson`
+- District map components live in `src/components/district-map/`
+- Leaflet is loaded client-side with `ssr: false`
+
+### 3) Data flow
+
+The project follows a clear pattern:
+
+- `prisma/schema.prisma` defines the database schema
+- Prisma seed files provide content sources
+- `src/lib/db/destinations.ts` converts DB rows into the app’s serializable `Destination` type
+- Pages render material from that normalized layer
 
 ## Project structure
 
+```text
+.
+├── prisma/
+│   ├── schema.prisma
+│   ├── seed.ts
+│   ├── data/
+│   │   ├── baitadi.ts
+│   │   ├── bajhang.ts
+│   │   ├── bajura.ts
+│   │   ├── dadeldhura.ts
+│   │   ├── destinations.ts
+│   │   └── ...
+│   └── migrations/
+├── public/
+│   └── data/
+│       └── sudurpaschim-districts.simplified.geojson
+├── src/
+│   ├── app/
+│   │   ├── blog/
+│   │   ├── districts/
+│   │   ├── guide-connect/
+│   │   ├── hidden-gems/
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── components/
+│   │   ├── district-map/
+│   │   ├── hero-map/
+│   │   └── site/
+│   ├── data/
+│   │   ├── districts.ts
+│   │   ├── landmarks.ts
+│   │   ├── sample-pois.ts
+│   │   ├── sudurpaschim-svg.json
+│   │   └── ...
+│   ├── lib/
+│   │   ├── db/
+│   │   ├── heroCamera.ts
+│   │   ├── pathBounds.ts
+│   │   └── types.ts
+│   └── generated/prisma/
+├── map-data/
+├── nepal-districts/
+├── next.config.ts
+├── package.json
+├── tsconfig.json
+├── postcss.config.mjs
+├── prisma.config.ts
+├── README.md
+└── .env.local
 ```
-src/
-  app/
-    layout.tsx                 Root layout + header
-    globals.css                Tailwind v4 + palette tokens
-    page.tsx                   Landing page (hero + district grid)
-    districts/[slug]/
-      page.tsx                 District detail (map + sections); prerenders 9 slugs
-      not-found.tsx            Invalid-slug fallback
-  components/
-    site/Header.tsx
-    hero-map/
-      HeroMap.tsx              Camera/viewBox SVG hero map (client)
-      DistrictNav.tsx          Bottom "ruler" district navigator
-    district-map/
-      DistrictMap.tsx          react-leaflet map (client, dynamically imported)
-      DistrictMapLoader.tsx    'use client' wrapper doing dynamic(ssr:false)
-  data/
-    districts.ts               Single source of truth for the 9 districts
-    landmarks.ts               STARTER landmarks floated over the hero map
-    sample-pois.ts             SAMPLE markers (replace with real data later)
-    sudurpaschim-svg.json      Hero SVG paths
-  lib/
-    types.ts                   Shared types
-    pathBounds.ts              SVG path bbox → camera viewBox framing
-public/data/
-  sudurpaschim-districts.simplified.geojson   Boundaries fed to Leaflet
-map-data/                      Source-of-truth data archive (full + simplified + svg)
-```
 
-## Extending it (later phases)
+## Content and data guidance
 
-- **Real content** (history, culture, safety, destinations): fill in `blurb`/`tagline`
-  in `src/data/districts.ts` and the placeholder sections in the district page.
-- **Hero landmarks**: `src/data/landmarks.ts` is starter content — a couple of pins
-  per district, positioned as `dx`/`dy` offsets from that district's SVG label
-  centroid. Verify the names and nudge the offsets as real destinations land.
-- **Guides / stays / hidden gems**: replace `src/data/sample-pois.ts` with DB-backed
-  records (Prisma + Postgres). `Poi`/`PoiCategory` in `src/lib/types.ts` are the
-  shape the map already consumes.
-- **Auth, RAG assistant, blog, recommendation engine**: not yet scaffolded.
+A few rules are important for contributors:
 
-## Note on builds
+- `position` is `[lat, lon] | null`. Do not invent coordinates.
+- Most destination fields are optional; hide missing blocks instead of rendering placeholder text.
+- `verify?: string[]` should be used when source details are unconfirmed.
+- Do not fabricate history, fees, opening hours, or phone numbers.
+- Long-form notes and descriptions are planned as future RAG corpus content, so keep them as clear prose.
+- District and landmark files under `src/data/` are starter content. They are not the final runtime source of truth for destinations.
 
-`layout.tsx` loads Cormorant Garamond via `next/font/google`, so `next build`
-fetches it from `fonts.googleapis.com`. Offline or proxied builds (some CI
-sandboxes) fail there — set `HTTPS_PROXY`, or switch to `next/font/local` with a
-self-hosted copy if you need fully offline builds.
+## Build and deployment notes
+
+- The app is designed for Vercel hosting and free-tier-friendly deployment.
+- Pages are prerendered with `generateStaticParams` and a revalidation strategy to remain stable when the database is briefly unavailable.
+- The project uses a custom visual design system in `src/app/globals.css` with tokens like `forest`, `slate`, `brass`, `stone`, and `paper`.
+- The app supports dark mode through `html[data-theme="dark"]` token overrides.
 
 ## Data provenance
 
-District boundaries derive from the HDX/OCHA Nepal COD `npl_admin2` dataset
-(province `adm1_name = "Sudur Paschim"`, pcode `NP07`; 9 districts). The generation
-inputs and outputs live in `map-data/` and `nepal-districts/`.
+The district boundary data is derived from the Nepal administrative boundary dataset used for Sudurpaschim Province. Source assets and generated map files live under `map-data/` and `nepal-districts/`.
+
+## Open roadmap
+
+The current project already lays the foundation for the full tourism platform, but the following phases are still planned:
+
+- guide connections and local experts
+- blog and editorial content
+- hidden gems and destination discovery flows
+- recommendation engine
+- RAG-powered AI assistant
+
+## Contributing
+
+When contributing, keep changes small and consistent with the existing structure. Prefer the current data-access boundaries and avoid bypassing the intended Prisma layer.
+
+Before wrapping up work, run:
+
+```bash
+npx tsc --noEmit
+```
+
+This repo does not yet have a dedicated lint script, and there is no test suite configured yet.
