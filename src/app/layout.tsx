@@ -14,10 +14,48 @@ const cormorant = Cormorant_Garamond({
   display: "swap",
 });
 
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  process.env.SITE_URL ||
+  "https://drishya.vercel.app";
+
 export const metadata: Metadata = {
-  title: "Drishya — Explore Sudurpaschim",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "Drishya — Explore Sudurpaschim",
+    template: "%s | Drishya",
+  },
   description:
-    "An interactive tourism platform for Nepal's Sudurpaschim Province — hover the district map, discover destinations, guides, and an AI travel assistant.",
+    "Explore destinations, hidden gems, and local travel guides across Nepal's Sudurpaschim Province with Drishya.",
+  applicationName: "Drishya",
+  keywords: [
+    "Sudurpaschim",
+    "Nepal tourism",
+    "travel guide",
+    "destination discovery",
+    "hidden gems",
+    "local guide",
+    "Kailali",
+    "Darchula",
+  ],
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "Drishya — Explore Sudurpaschim",
+    description:
+      "Discover the districts, paths, and unforgettable places of western Nepal through an immersive travel experience.",
+    type: "website",
+    locale: "en_US",
+    url: siteUrl,
+    siteName: "Drishya",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Drishya — Explore Sudurpaschim",
+    description:
+      "Discover the districts, hidden gems, and travel stories of Nepal's Sudurpaschim Province.",
+  },
 };
 
 export default function RootLayout({

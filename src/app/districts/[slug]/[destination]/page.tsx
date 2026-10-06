@@ -22,14 +22,40 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug, destination: destinationSlug } = await params;
   const district = getDistrict(slug);
-  if (!district) return { title: "Destination not found — Drishya" };
+  if (!district) {
+    return {
+      title: "Destination not found",
+      description: "The destination you are looking for is not available.",
+    };
+  }
 
   const destination = await getDestination(district.id, destinationSlug);
-  if (!destination) return { title: "Destination not found — Drishya" };
+  if (!destination) {
+    return {
+      title: "Destination not found",
+      description: "The destination you are looking for is not available.",
+    };
+  }
+
+  const canonicalUrl = `/districts/${district.slug}/${destination.slug}`;
 
   return {
-    title: `${destination.name} — Drishya`,
+    title: destination.name,
     description: destination.shortDescription,
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title: destination.name,
+      description: destination.shortDescription,
+      type: "article",
+      url: canonicalUrl,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: destination.name,
+      description: destination.shortDescription,
+    },
   };
 }
 
@@ -62,8 +88,44 @@ export default async function DestinationPage({
   const destination = await getDestination(district.id, destinationSlug);
   if (!destination) notFound();
 
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.SITE_URL ||
+    "https://drishya.vercel.app";
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Place",
+    name: destination.name,
+    description: destination.shortDescription,
+    url: new URL(
+      `/districts/${district.slug}/${destination.slug}`,
+      siteUrl,
+    ).toString(),
+    containedInPlace: {
+      "@type": "AdministrativeArea",
+      name: district.name,
+      addressRegion: "Sudurpaschim Province",
+      addressCountry: "NP",
+    },
+    ...(destination.position
+      ? {
+          geo: {
+            "@type": "GeoCoordinates",
+            latitude: destination.position[0],
+            longitude: destination.position[1],
+          },
+        }
+      : {}),
+    keywords: [...destination.interestTags, ...destination.category].join(", "),
+  };
+
   return (
     <main className="mx-auto max-w-6xl px-4 pb-16 pt-[calc(var(--header-h)+1.5rem)]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <Link
         href={`/districts/${district.slug}`}
         className="text-sm text-muted transition-colors hover:text-accent-ink"
