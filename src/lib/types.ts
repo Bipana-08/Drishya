@@ -1,5 +1,67 @@
 import type { FeatureCollection, Polygon } from "geojson";
 
+export type InterestTag =
+  | "Culture"
+  | "History"
+  | "Religious"
+  | "Nature"
+  | "Wildlife"
+  | "Adventure"
+  | "Trekking"
+  | "Relaxation"
+  | "Archaeology";
+
+export type Season = "Spring" | "Summer" | "Monsoon" | "Autumn" | "Winter";
+
+export type BudgetLevel = "Low" | "Low-Medium" | "Medium" | "High";
+
+export interface Destination {
+  id: string;
+  /** URL slug — unique within the district. */
+  slug: string;
+  districtId: string;
+  name: string;
+  nameNepali?: string;
+  category: string[];
+  /** Nearest town / landmark, in plain prose. */
+  nearestTown?: string;
+  /** [lat, lon]. `null` where the source data is incomplete. */
+  position: [number, number] | null;
+  elevationM?: number;
+
+  interestTags: InterestTag[];
+  bestSeasons: Season[];
+  /** Festival / hazard notes attached to the seasons above. */
+  bestTimeNote?: string;
+  budget: BudgetLevel;
+  budgetNote?: string;
+  hiddenGem: boolean;
+  hiddenGemReason?: string;
+
+  shortDescription: string;
+  longDescription?: string;
+  bestFor?: string;
+
+  howToGetThere?: string;
+  entryFee?: string;
+  openingHours?: string;
+  nearbyStaysFood?: string;
+  safetyNotes?: string;
+
+  media?: {
+    photo: string;
+    photoUrl?: string;
+    credit: string;
+  };
+
+  /** Reference pages cited in the source doc. */
+  sources?: string[];
+
+  alternateNames: string[];
+  culturalNote?: string;
+  verify?: string[];
+}
+
 /** Category of a point-of-interest shown on the district (Leaflet) map. */
 export type PoiCategory = "guide" | "stay" | "hidden-gem";
 
