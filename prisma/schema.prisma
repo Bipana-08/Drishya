@@ -1,0 +1,80 @@
+// Prisma 7: no `url` here (it lives in prisma.config.ts), and the generator
+// must be `prisma-client` with an explicit output path.
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model District {
+  id        String @id // "kailali" — same as slug, matches src/data/districts.ts
+  slug      String @unique
+  name      String
+  pcode     String @unique
+  areaSqKm  Float
+  centerLat Float
+  centerLon Float
+  tagline   String
+  blurb     String
+
+  destinations Destination[]
+}
+
+/// Mirrors the `Destination` type in src/lib/types.ts.
+/// Enum-like fields (interestTags, bestSeasons, budget) are stored as plain
+/// strings and validated by the TypeScript unions + the seed script. Prisma
+/// enums can't hold values like "Low-Medium".
+model Destination {
+  id         String   @id // "baitadi-tripura-sundari"
+  slug       String
+  districtId String
+  district   District @relation(fields: [districtId], references: [id])
+
+  name      String
+  nameNepali String?
+  category  String[]
+  nearestTown String?
+
+  // null where the source data had no verified coordinates.
+  lat       Float?
+  lon       Float?
+  elevationM Int?
+
+  interestTags   String[]
+  bestSeasons    String[]
+  bestTimeNote   String?
+  budget         String
+  budgetNote     String?
+  hiddenGem      Boolean
+  hiddenGemReason String?
+
+  shortDescription String
+  longDescription  String?
+  bestFor          String?
+
+  howToGetThere   String?
+  entryFee        String?
+  openingHours    String?
+  nearbyStaysFood String?
+  safetyNotes     String?
+
+  mediaPhoto    String?
+  mediaPhotoUrl String?
+  mediaCredit   String?
+
+  sources        String[]
+  alternateNames String[]
+  culturalNote   String?
+
+  /// Fields still unconfirmed, e.g. ["position", "entryFee"].
+  verify String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([districtId, slug])
+  @@index([districtId])
+}
