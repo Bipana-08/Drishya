@@ -22,8 +22,33 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const district = getDistrict(slug);
-  if (!district) return { title: "District not found — Drishya" };
-  return { title: `${district.name} — Drishya`, description: district.blurb };
+  if (!district) {
+    return {
+      title: "District not found",
+      description: "The district you are looking for is not available.",
+    };
+  }
+
+  const canonicalUrl = `/districts/${district.slug}`;
+
+  return {
+    title: `${district.name} Travel Guide`,
+    description: `${district.blurb} Explore destinations, hidden gems, and practical travel information for ${district.name} in Sudurpaschim Province.`,
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title: `${district.name} Travel Guide`,
+      description: district.blurb,
+      type: "website",
+      url: canonicalUrl,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${district.name} Travel Guide`,
+      description: district.blurb,
+    },
+  };
 }
 
 export default async function DistrictPage({
@@ -35,6 +60,11 @@ export default async function DistrictPage({
   const district = getDistrict(slug);
   if (!district) notFound();
 
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.SITE_URL ||
+    "https://drishya.vercel.app";
+
   const [destinations, mappableDestinations] = await Promise.all([
     getDestinationsForDistrict(district.id),
     getMappableDestinations(district.id),
@@ -43,9 +73,37 @@ export default async function DistrictPage({
     (destination) => destination.hiddenGem,
   ).length;
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "TouristTrip",
+    name: `${district.name} District Guide`,
+    description: district.blurb,
+    url: new URL(`/districts/${district.slug}`, siteUrl).toString(),
+    touristType: "Destination discovery",
+    provider: {
+      "@type": "Organization",
+      name: "Drishya",
+    },
+    containedInPlace: {
+      "@type": "AdministrativeArea",
+      name: "Sudurpaschim Province",
+      addressCountry: "NP",
+    },
+    itinerary: destinations.slice(0, 10).map((destination) => ({
+      "@type": "TouristTrip",
+      name: destination.name,
+      description: destination.shortDescription,
+      url: new URL(`/districts/${district.slug}/${destination.slug}`, siteUrl).toString(),
+    })),
+  };
+
   return (
     // The dock floats, so pages pad themselves clear of it.
     <main className="mx-auto max-w-6xl px-4 pb-16 pt-[calc(var(--header-h)+1.5rem)]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <Link
         href="/"
         className="text-sm text-muted transition-colors hover:text-accent-ink"
