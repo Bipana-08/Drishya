@@ -98,120 +98,130 @@ export default async function DistrictPage({
   };
 
   return (
-    // The dock floats, so pages pad themselves clear of it.
-    <main className="mx-auto max-w-6xl px-4 pb-16 pt-[calc(var(--header-h)+1.5rem)]">
+    <main className="min-h-screen bg-paper text-ink">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <Link
-        href="/"
-        className="text-sm text-muted transition-colors hover:text-accent-ink"
-      >
-        ← Back to map
-      </Link>
+      <div className="mx-auto max-w-360 px-5 pb-24 pt-[calc(var(--header-h)+3rem)] sm:px-10 lg:px-16">
+        <Link
+          href="/"
+          className="text-xs uppercase tracking-[0.22em] text-muted transition-colors hover:text-accent-ink"
+        >
+          ← Back to map
+        </Link>
 
-      <header className="mt-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent-ink">
-          {district.tagline}
-        </p>
-        <h1 className="font-display mt-1.5 text-4xl font-semibold tracking-tight text-ink sm:text-5xl">
-          {district.name}
-        </h1>
-        <p className="mt-2 max-w-2xl text-base leading-relaxed text-ink/70">
-          {district.blurb}
-        </p>
-        <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-2 text-sm">
-          <div>
-            <dt className="text-muted">Area</dt>
-            <dd className="font-medium text-ink">
-              {district.areaSqKm.toLocaleString()} km²
-            </dd>
+        <section className="mx-auto mt-12 max-w-6xl">
+          <div className="mb-5 flex items-end justify-between gap-4">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.24em] text-muted">Explore the region</p>
+              <h2 className="font-display mt-2 text-3xl text-ink sm:text-4xl">A living map of {district.name}</h2>
+            </div>
+            <span className="hidden text-xs uppercase tracking-[0.18em] text-muted sm:block">
+              {mappableDestinations.length} mapped places
+            </span>
           </div>
-          <div>
-            <dt className="text-muted">Center</dt>
-            <dd className="font-medium text-ink">
-              {district.center[0].toFixed(3)}, {district.center[1].toFixed(3)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-muted">Code</dt>
-            <dd className="font-medium text-ink">{district.pcode}</dd>
-          </div>
-        </dl>
-      </header>
-
-      <section className="mt-6">
         <DistrictMapLoader
           district={district}
           destinations={mappableDestinations}
         />
-      </section>
+        </section>
 
-      <section className="mt-8 grid gap-4 sm:grid-cols-3">
+        <header className="mx-auto mt-28 max-w-5xl text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-accent-ink">
+            {district.tagline}
+          </p>
+          <h1 className="font-display mt-5 text-[clamp(4rem,13vw,10rem)] font-medium uppercase leading-[0.82] tracking-[0.06em] text-ink">
+            {district.name}
+          </h1>
+          <div className="mx-auto mt-12 h-20 w-px bg-line" />
+          <p className="mx-auto mt-8 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
+            {district.blurb}
+          </p>
+        </header>
+
+        <dl className="mx-auto mt-16 grid max-w-5xl border-y border-line sm:grid-cols-3">
+          <div className="border-b border-line px-5 py-5 text-center sm:border-b-0 sm:border-r">
+            <dt className="text-[10px] uppercase tracking-[0.24em] text-muted">Area</dt>
+            <dd className="font-display mt-2 text-2xl text-ink">
+              {district.areaSqKm.toLocaleString()} km²
+            </dd>
+          </div>
+          <div className="border-b border-line px-5 py-5 text-center sm:border-b-0 sm:border-r">
+            <dt className="text-[10px] uppercase tracking-[0.24em] text-muted">Center</dt>
+            <dd className="mt-2 text-sm uppercase tracking-[0.12em] text-ink">
+              {district.center[0].toFixed(3)}, {district.center[1].toFixed(3)}
+            </dd>
+          </div>
+          <div className="px-5 py-5 text-center">
+            <dt className="text-[10px] uppercase tracking-[0.24em] text-muted">District code</dt>
+            <dd className="mt-2 text-sm uppercase tracking-[0.12em] text-ink">{district.pcode}</dd>
+          </div>
+        </dl>
+
+      <section className="mx-auto mt-20 grid max-w-6xl border-y border-line sm:grid-cols-3">
         {[
           ["Destinations", destinations.length],
           ["Hidden gems", hiddenGemCount],
           ["Mapped on map", mappableDestinations.length],
         ].map(([label, count]) => (
-          <div key={label} className="glass glass-card rounded-2xl p-5">
-            <h2 className="text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+          <div key={label} className="border-b border-line px-5 py-6 text-center last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0">
+            <h2 className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted">
               {label}
             </h2>
-            <p className="font-display mt-1 text-3xl font-semibold text-ink">
+            <p className="font-display mt-2 text-4xl text-ink">
               {count}
             </p>
           </div>
         ))}
       </section>
 
-      <section className="mt-8">
-        <h2 className="font-display text-3xl font-semibold text-ink">
-          Destinations
-        </h2>
+      <section className="mx-auto mt-28 max-w-6xl">
+        <div className="flex items-end justify-between border-b border-line pb-5">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.24em] text-muted">Places to go</p>
+            <h2 className="font-display mt-2 text-4xl text-ink sm:text-5xl">Destinations</h2>
+          </div>
+          <span className="text-xs uppercase tracking-[0.18em] text-muted">{destinations.length} places</span>
+        </div>
         {destinations.length === 0 ? (
-          <p className="glass mt-4 rounded-2xl p-5 text-sm text-ink/60">
+          <p className="mt-8 border-b border-line pb-8 text-sm text-muted">
             Content coming soon for {district.name}.
           </p>
         ) : (
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            {destinations.map((destination) => (
+          <div className="grid gap-x-12 md:grid-cols-2">
+            {destinations.map((destination, index) => (
               <Link
                 key={destination.id}
                 href={`/districts/${district.slug}/${destination.slug}`}
-                className="glass glass-card rounded-2xl p-5 transition-transform hover:-translate-y-0.5"
+                className="group border-b border-line py-8 transition-colors hover:border-accent-ink"
               >
-                <div className="flex items-start justify-between gap-4">
-                  <h3 className="font-display text-2xl font-semibold text-ink">
-                    {destination.name}
-                  </h3>
+                <div className="flex items-baseline justify-between gap-4">
+                  <span className="font-display text-xl text-accent-ink">0{index + 1}</span>
                   {destination.hiddenGem && (
-                    <span className="shrink-0 rounded-full bg-brass px-2.5 py-1 text-xs font-semibold text-forest">
-                      Hidden gem
-                    </span>
+                    <span className="text-[10px] uppercase tracking-[0.18em] text-accent-ink">Hidden gem</span>
                   )}
                 </div>
-                <div className="mt-3 flex flex-wrap gap-2">
+                <h3 className="font-display mt-4 text-3xl text-ink transition-colors group-hover:text-accent-ink">
+                  {destination.name}
+                </h3>
+                <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1">
                   {destination.category.map((category) => (
-                    <span
-                      key={category}
-                      className="rounded-full border border-line px-2.5 py-1 text-xs text-muted"
-                    >
+                    <span key={category} className="text-[10px] uppercase tracking-[0.16em] text-muted">
                       {category}
                     </span>
                   ))}
                 </div>
-                <p className="mt-3 text-sm leading-relaxed text-ink/70">
-                  {destination.shortDescription}
-                </p>
-                <p className="mt-4 text-sm font-medium text-accent-ink">
-                  Budget: {destination.budget} →
+                <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted">{destination.shortDescription}</p>
+                <p className="mt-5 text-xs uppercase tracking-[0.18em] text-accent-ink">
+                  Explore place · {destination.budget} →
                 </p>
               </Link>
             ))}
           </div>
         )}
       </section>
+      </div>
     </main>
   );
 }
