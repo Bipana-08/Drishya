@@ -2,8 +2,11 @@ import Link from "next/link";
 import { HeroMap } from "@/components/hero-map/HeroMap";
 import { Reveal } from "@/components/site/Reveal";
 import { districts } from "@/data/districts";
+import { getAllMappableDestinations } from "@/lib/db/destinations";
 
-export default function Home() {
+export default async function Home() {
+  const destinations = await getAllMappableDestinations();
+
   return (
     <main id="top">
       {/*
@@ -11,24 +14,24 @@ export default function Home() {
        * the province overview through all nine districts. Its own section owns
        * the scroll distance, so nothing here needs a max-width.
        */}
-      <HeroMap />
+      <HeroMap destinations={destinations} />
 
       {/* Text/grid fallback — works without JS, helps SEO, and lists everything. */}
       <section
         id="all-districts"
-        className="mx-auto max-w-6xl px-4 py-20 sm:py-28"
+        className="mx-auto max-w-360 px-5 py-24 sm:px-10 sm:py-36 lg:px-16"
       >
         <Reveal>
-          <div className="flex items-end justify-between gap-4">
+          <div className="flex flex-col gap-8 border-b border-line pb-8 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-xs font-semibold uppercase tracking-[0.24em] text-accent-ink">
+              <h2 className="text-[10px] font-semibold uppercase tracking-[0.3em] text-accent-ink">
                 All districts
               </h2>
-              <p className="font-display mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+              <p className="font-display mt-5 text-[clamp(3.5rem,8vw,7rem)] font-medium leading-[0.82] tracking-[0.03em] text-ink">
                 Nine ways in
               </p>
             </div>
-            <span className="hidden shrink-0 text-sm text-muted sm:block">
+            <span className="text-xs uppercase tracking-[0.18em] text-muted sm:pb-1">
               {districts.length} districts ·{" "}
               {districts
                 .reduce((sum, d) => sum + d.areaSqKm, 0)
@@ -38,33 +41,38 @@ export default function Home() {
           </div>
         </Reveal>
 
-        <ul className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="mt-12 grid grid-cols-1 gap-x-10 sm:grid-cols-2 lg:grid-cols-3">
           {districts.map((d, i) => (
             <li key={d.slug}>
               <Reveal delay={(i % 3) * 0.07}>
                 <Link
                   href={`/districts/${d.slug}`}
-                  className="glass glass-card group block h-full rounded-2xl p-5"
+                  className="group block h-full border-b border-line py-8 transition-colors hover:border-accent-ink"
                 >
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="font-display text-2xl font-semibold text-ink transition-colors group-hover:text-accent-ink">
-                      {d.name}
+                  <div className="flex items-baseline justify-between gap-4">
+                    <span className="font-display text-xl text-accent-ink">
+                      {String(i + 1).padStart(2, "0")}
                     </span>
-                    <span className="shrink-0 text-[11px] tabular-nums text-muted">
+                    <span className="text-[10px] uppercase tracking-[0.16em] text-muted">
                       {d.areaSqKm.toLocaleString()} km²
                     </span>
                   </div>
-                  <p className="mt-1.5 text-sm font-medium text-accent-ink">
+                  <div className="mt-5 flex items-baseline justify-between gap-2">
+                    <span className="font-display text-3xl text-ink transition-colors group-hover:text-accent-ink sm:text-4xl">
+                      {d.name}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-accent-ink">
                     {d.tagline}
                   </p>
-                  <p className="mt-2 text-sm leading-relaxed text-ink/60">
+                  <p className="mt-4 text-sm leading-relaxed text-muted">
                     {d.blurb}
                   </p>
-                  <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-[0.16em] text-muted transition-colors group-hover:text-accent-ink">
+                  <span className="mt-6 inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted transition-colors group-hover:text-accent-ink">
                     Explore
                     <span
                       aria-hidden
-                      className="transition-transform duration-300 group-hover:translate-x-1"
+                      className="transition-transform duration-300 group-hover:translate-x-2"
                     >
                       →
                     </span>

@@ -46,6 +46,8 @@
   --color-muted: #5c6b62; /* sage */
   --color-line: #d1cfc7; /* stone */
   --color-dock-text: #f6f5f2;
+  --color-place-card: #dfe8e4;
+  --color-place-ink: #1f3d2b;
 
   /* Editorial serif for hero display type. Wired to next/font in layout.tsx. */
   --font-display: var(--font-cormorant), ui-serif, Georgia, "Times New Roman",
@@ -83,6 +85,8 @@ html[data-theme="dark"] {
   --color-muted: #aab9ae;
   --color-line: #52645a;
   --color-dock-text: #e7eee8;
+  --color-place-card: #263b31;
+  --color-place-ink: #edf3ee;
 }
 
 body {
@@ -315,4 +319,110 @@ html[data-theme="dark"] .leaflet-tile {
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+@keyframes place-marker-pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.82);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.35);
+  }
+}
+
+.place-marker-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: place-marker-pulse 2.2s ease-in-out infinite;
+}
+
+.place-topbar {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 40;
+  display: flex;
+  justify-content: space-between;
+  padding: 1.35rem clamp(1.25rem, 4vw, 4rem);
+  background: color-mix(in srgb, var(--color-paper) 88%, transparent);
+  backdrop-filter: blur(14px);
+}
+
+.bg-place-card {
+  background: var(--color-place-card);
+}
+
+.text-place-ink {
+  color: var(--color-place-ink);
+}
+
+.district-place-marker {
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--color-dock-text) 85%, transparent));
+  transition:
+    opacity 0.45s ease,
+    filter 0.45s ease;
+}
+
+.district-place-marker:hover {
+  filter:
+    drop-shadow(0 0 4px var(--color-dock-text))
+    drop-shadow(0 0 10px color-mix(in srgb, var(--color-brass) 65%, transparent));
+}
+
+@keyframes district-destination-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.58);
+    filter: blur(3px) drop-shadow(0 0 0 transparent);
+  }
+  65% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1.06);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0) drop-shadow(0 7px 8px color-mix(in srgb, var(--color-forest-deep) 25%, transparent));
+  }
+}
+
+.district-destination-pin svg {
+  animation: district-destination-enter 700ms cubic-bezier(0.16, 1, 0.3, 1)
+    var(--pin-delay, 0ms) both;
+  transform-origin: 50% 100%;
+}
+
+@keyframes district-marker-breathe {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.22);
+  }
+}
+
+.leaflet-overlay-pane .district-place-marker {
+  animation: district-marker-breathe 2.4s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .place-marker-pulse {
+    animation: none;
+  }
+
+  .district-place-marker {
+    animation: none;
+    transition: none;
+  }
+
+  .district-destination-pin svg {
+    animation: none;
+  }
 }

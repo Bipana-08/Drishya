@@ -22,7 +22,6 @@ import {
 } from "motion/react";
 import svgJson from "@/data/sudurpaschim-svg.json";
 import { districts } from "@/data/districts";
-import { landmarksForDistrict } from "@/data/landmarks";
 import { framedViewBox, pathBounds, unionBounds, type Bounds } from "@/lib/pathBounds";
 import {
   clamp,
@@ -31,8 +30,11 @@ import {
   seatFrame,
   type Frame,
 } from "@/lib/heroCamera";
-import type { LandmarkKind, SudurpaschimSvg } from "@/lib/types";
+import type { SudurpaschimSvg } from "@/lib/types";
+import type { Destination } from "@/lib/types";
 import { DistrictNav } from "./DistrictNav";
+import { PlaceMarkers } from "./PlaceMarkers";
+import { PlaceHoverCard } from "./PlaceHoverCard";
 
 const svg = svgJson as SudurpaschimSvg;
 
@@ -56,12 +58,7 @@ const useIsomorphicLayoutEffect =
  * allotted to each stop after the first.
  */
 const STOP_VH = 85;
-
-/**
- * Scroll progress at which the opening title has fully dissolved — a small
- * fraction of a very tall section, so the card clears as soon as you move.
- */
-const TITLE_FADE_END = 0.03;
+const TITLE_FADE_END = 0.08;
 
 /**
  * Landmark pins and labels are authored around a 15-user-unit cap height, and
@@ -93,36 +90,7 @@ const BORDER_STROKE = "var(--color-stone)";
 /** SVG paths keyed by district id (the JSON is in a different order than `districts`). */
 const svgById = Object.fromEntries(svg.districts.map((d) => [d.id, d]));
 
-/** Tiny centered glyph per landmark kind, drawn in ±4 local units (paper on forest). */
-function Glyph({ kind }: { kind: LandmarkKind }) {
-  const paper = "var(--color-dock-text)";
-  if (kind === "peak") {
-    return <path d="M -3.6 3 L 0 -4 L 3.6 3 Z" fill={paper} />;
-  }
-  if (kind === "temple") {
-    return (
-      <path
-        d="M -3.4 3 L -3.4 -0.6 L 0 -4 L 3.4 -0.6 L 3.4 3 Z"
-        fill={paper}
-      />
-    );
-  }
-  if (kind === "gem") {
-    return <path d="M 0 -3.6 L 3.6 0 L 0 3.6 L -3.6 0 Z" fill={paper} />;
-  }
-  // water — a little wave
-  return (
-    <path
-      d="M -3.6 0 q 1.8 -2.6 3.6 0 t 3.6 0"
-      fill="none"
-      stroke={paper}
-      strokeWidth={1.3}
-      strokeLinecap="round"
-    />
-  );
-}
-
-export function HeroMap() {
+export function HeroMap({ destinations }: { destinations: Destination[] }) {
   const router = useRouter();
   const reduced = useReducedMotion();
 
@@ -138,18 +106,11 @@ export function HeroMap() {
   /** Measured stage size in CSS px — the stage is full-bleed, so its aspect
    * (and therefore the camera framing) depends on the viewport.
    *
-   * Seeded from the viewport on the first client render, not left at 0: the
-   * stage is full-bleed and one screen tall, so innerWidth/innerHeight are the
-   * right aspect immediately. Waiting for the layout effect means the first
-   * painted frame is computed against the 16/9 fallback, and on a portrait phone
-   * `slice` crops the province for that frame — the flash that read as "broken
-   * on phone". SSR has no window, so it renders the fallback and the first
-   * client render corrects it before paint. */
-  const [stage, setStage] = useState(() =>
-    typeof window === "undefined"
-      ? { w: 0, h: 0 }
-      : { w: window.innerWidth, h: window.innerHeight },
-  );
+   * Keep the initial value identical on the server and client. The layout
+   * effect measures the real stage before the browser paints, so there is no
+   * need to read `window` during render and risk hydration mismatches.
+   */
+  const [stage, setStage] = useState({ w: 0, h: 0 });
   useIsomorphicLayoutEffect(() => {
     const el = stageRef.current;
     if (!el) return;
@@ -263,7 +224,7 @@ export function HeroMap() {
     settleTimer.current = setTimeout(() => {
       flyingRef.current = false;
       setFlying(false);
-    }, 140);
+    }, 260);
   });
   useEffect(() => () => clearTimeout(settleTimer.current), []);
 
@@ -279,11 +240,18 @@ export function HeroMap() {
 
   /** District under the pointer, if any — drives the premium hover state. */
   const [hoverId, setHoverId] = useState<string | null>(null);
+  const [placeHover, setPlaceHover] = useState<Destination | null>(null);
+  const [placePosition, setPlacePosition] = useState<{ x: number; y: number } | null>(
+    null,
+  );
+  const touchPlaceRef = useRef<string | null>(null);
+  const placeCloseTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
 
   const activeIndex = stopIndex - 1; // -1 while the overview is framed
   const active = activeIndex >= 0 ? districts[activeIndex] : undefined;
   const activeSvg = active ? svgById[active.id] : undefined;
-  const landmarks = active ? landmarksForDistrict(active.id) : [];
 
   const hovered =
     hoverId && hoverId !== active?.id
@@ -296,18 +264,6 @@ export function HeroMap() {
   const uscale =
     stage.w > 0 ? (MARKER_PX / MARKER_UNITS) * (frameW / stage.w) : 1;
 
-  // The opening title dissolves the moment you start scrolling.
-  //
-  // `titleOpacity` is a *function* transform, not the `[0, 0.03] → [1, 0]` range
-  // form, and that's load-bearing. `useScroll` with a target/offset marks
-  // `scrollYProgress` as hardware-accelerable through a native ViewTimeline, and
-  // motion routes any `opacity` bound to a *range* transform onto it. The native
-  // timeline stretches this 3% sub-range across a far wider span, so the card
-  // never reaches 0 — it hangs near 0.4 opacity, a ghost of the title left over
-  // the map on real phones. A function transform opts out of acceleration (motion
-  // only accelerates the range form), so the fade runs the normal per-frame path
-  // and clamps to 0 as intended. `y` is unaffected — it isn't an accelerated key
-  // — but it shares the constant so the two stay in lockstep.
   const titleOpacity = useTransform(scrollYProgress, (p) =>
     clamp(1 - p / TITLE_FADE_END, 0, 1),
   );
@@ -333,6 +289,44 @@ export function HeroMap() {
   const goActive = () => {
     if (active) router.push(`/districts/${active.slug}`);
   };
+
+  const setPlaceAtPointer = useCallback(
+    (destination: Destination | null, event?: React.PointerEvent<SVGGElement>) => {
+      clearTimeout(placeCloseTimer.current);
+      if (!destination || !event || !stageRef.current) {
+        placeCloseTimer.current = setTimeout(() => {
+          setPlaceHover(null);
+          setPlacePosition(null);
+        }, 140);
+        return;
+      }
+      const rect = stageRef.current.getBoundingClientRect();
+      setPlaceHover(destination);
+      setPlacePosition({ x: event.clientX - rect.left, y: event.clientY - rect.top });
+    },
+    [],
+  );
+
+  const keepPlaceCardOpen = useCallback(() => {
+    clearTimeout(placeCloseTimer.current);
+  }, []);
+
+  const openPlace = useCallback(
+    (destination: Destination, event?: React.PointerEvent<SVGGElement>) => {
+      if (event?.pointerType === "touch") {
+        if (touchPlaceRef.current === destination.id) {
+          router.push(`/districts/${destination.districtId}/${destination.slug}`);
+          touchPlaceRef.current = null;
+        } else {
+          touchPlaceRef.current = destination.id;
+          setPlaceAtPointer(destination, event);
+        }
+        return;
+      }
+      router.push(`/districts/${destination.districtId}/${destination.slug}`);
+    },
+    [router, setPlaceAtPointer],
+  );
 
   return (
     <section
@@ -392,6 +386,13 @@ export function HeroMap() {
                 floodColor="#162c1f"
                 floodOpacity="0.22"
               />
+            </filter>
+            <filter id="marker-glow" x="-250%" y="-250%" width="600%" height="600%">
+              <feGaussianBlur stdDeviation="2.8" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
             </filter>
             <pattern
               id="hatch"
@@ -508,60 +509,13 @@ export function HeroMap() {
             )}
           </AnimatePresence>
 
-          {/* Landmarks of the active district. */}
-          <AnimatePresence mode="wait">
-            {active && activeSvg && (
-              <motion.g
-                key={active.id}
-                exit={{ opacity: 0, transition: { duration: 0.25 } }}
-              >
-                {landmarks.map((lm, i) => {
-                  const px = activeSvg.cx + lm.dx;
-                  const py = activeSvg.cy + lm.dy;
-                  return (
-                    <motion.g
-                      key={lm.name}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{
-                        delay: reduced ? 0 : 0.5 + i * 0.12,
-                        duration: reduced ? 0 : 0.45,
-                      }}
-                    >
-                      <g transform={`translate(${px} ${py}) scale(${uscale})`}>
-                        <circle
-                          cx={0}
-                          cy={0}
-                          r={9}
-                          fill="var(--color-dock-text)"
-                          fillOpacity={0.9}
-                        />
-                        <circle cx={0} cy={0} r={7.5} fill="var(--color-forest)" />
-                        <Glyph kind={lm.kind} />
-                        <text
-                          x={13}
-                          y={1}
-                          dominantBaseline="middle"
-                          style={{
-                            fontFamily: "var(--font-display)",
-                            fontSize: 15,
-                            fontWeight: 600,
-                            fill: "var(--color-forest)",
-                            paintOrder: "stroke",
-                            stroke: "var(--color-dock-text)",
-                            strokeWidth: 3.5,
-                            strokeLinejoin: "round",
-                          }}
-                        >
-                          {lm.name}
-                        </text>
-                      </g>
-                    </motion.g>
-                  );
-                })}
-              </motion.g>
-            )}
-          </AnimatePresence>
+          <PlaceMarkers
+            destinations={destinations}
+            markerScale={uscale}
+            activeDistrictId={active?.id}
+            onHover={setPlaceAtPointer}
+            onOpen={openPlace}
+          />
         </motion.svg>
 
         {/* Edge vignette so the glass panes have something to sit against. */}
@@ -570,14 +524,14 @@ export function HeroMap() {
           className="hero-vignette pointer-events-none absolute inset-0"
         />
 
-        {/* ── Opening shot: title over the whole province ──────────────── */}
-        {/*
-         * Centring lives on this plain wrapper, not on the motion element below.
-         * Motion builds `transform` from its own values, so anything else writing
-         * that property on the same element is at its mercy. Keeping the two on
-         * separate elements means the centring can't be clobbered, whatever the
-         * animation does. Same split the district card already uses.
-         */}
+        <PlaceHoverCard
+          destination={placeHover}
+          position={placePosition}
+          onPointerEnter={keepPlaceCardOpen}
+          onPointerLeave={() => setPlaceAtPointer(null)}
+        />
+
+        {/* ── Landing intro card ─────────────────────────────────────── */}
         <div className="pointer-events-none absolute inset-x-0 top-1/2 z-20 -translate-y-1/2 px-6 sm:inset-x-auto sm:left-8 sm:px-0">
           <motion.div style={{ opacity: titleOpacity, y: titleY }}>
             <div className="glass mx-auto max-w-xl rounded-3xl px-7 py-8 text-center sm:mx-0 sm:max-w-md sm:text-left">
@@ -592,8 +546,6 @@ export function HeroMap() {
                 fly the map west to east — or pick a district from the ruler
                 below.
               </p>
-
-              {/* Scroll cue. */}
               <div className="mt-7 flex flex-col items-center gap-2 sm:flex-row sm:gap-3">
                 <span className="text-[10px] font-medium uppercase tracking-[0.28em] text-muted">
                   Scroll to explore
