@@ -8,11 +8,13 @@
     "dev:lan": "next dev --hostname 0.0.0.0 --port 3000",
     "postinstall": "prisma generate",
     "build": "next build",
+    "cloudinary:seed": "tsx scripts/seed-cloudinary.ts",
     "start": "next start"
   },
   "dependencies": {
     "@prisma/adapter-neon": "^7.10.0",
     "@prisma/client": "^7.10.0",
+    "cloudinary": "^2.11.0",
     "dotenv": "^18.0.5",
     "leaflet": "^1.9.4",
     "motion": "^13.1.1",

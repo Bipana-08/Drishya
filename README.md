@@ -58,7 +58,13 @@ npx prisma generate
 npx prisma studio
 npx prisma migrate dev --name <name>
 npx prisma db seed
+npm run cloudinary:seed
 ```
+
+`npm run cloudinary:seed` uploads the images in
+`public/destinations/<district>/<destination-slug>/` to Cloudinary and
+upserts their metadata into Neon. It uses the destination slug to validate
+each folder, and never deletes images from Cloudinary or Neon.
 
 ## Database and content model
 

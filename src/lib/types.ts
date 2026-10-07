@@ -15,6 +15,16 @@ export type Season = "Spring" | "Summer" | "Monsoon" | "Autumn" | "Winter";
 
 export type BudgetLevel = "Low" | "Low-Medium" | "Medium" | "High";
 
+export interface DestinationImage {
+  id: string;
+  publicId: string;
+  secureUrl: string;
+  originalFilename: string;
+  sortOrder: number;
+  isCover: boolean;
+  credit?: string;
+}
+
 export interface Destination {
   id: string;
   /** URL slug — unique within the district. */
@@ -52,6 +62,8 @@ export interface Destination {
     photo: string;
     photoUrl?: string;
     credit: string;
+    /** Cloudinary-backed gallery; omitted in seed sources until images are uploaded. */
+    photos?: DestinationImage[];
   };
 
   /** Reference pages cited in the source doc. */

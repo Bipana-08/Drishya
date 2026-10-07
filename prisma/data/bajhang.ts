@@ -38,8 +38,9 @@ const bajhangSourceDestinations: BajhangSourceDestination[] = [
     slug: 'khaptad-national-park',
     category: 'Forest/Wildlife Area & Cultural Site',
     nearestLandmark: '1-day trek from Tamil, Bajhang (or accessible via Silgadhi, Doti)',
-    latitude: 29.27,
-    longitude: 81.02,
+    // Representative point inside the Khaptad National Park boundary.
+    latitude: 29.378,
+    longitude: 81.114,
     elevation: '1,400 m to 3,300 m (Plateau sits around 3,000 m)',
     budgetLevel: 'MEDIUM',
     bestTimeTags: ['SPRING', 'AUTUMN'],
@@ -303,8 +304,9 @@ const bajhangSourceDestinations: BajhangSourceDestination[] = [
     slug: 'urai-bhanjyang-pass',
     category: 'Mountain Pass / Trekking Route',
     nearestLandmark: 'Dhuli village (4–5 days trek north from Chainpur bazaar)',
-    latitude: 30.1583,
-    longitude: 81.1872,
+    // Urai La / Urai Bhanjyang, from OpenStreetMap's mountain-pass feature.
+    latitude: 30.01245,
+    longitude: 81.24178,
     elevation: '5,207 meters (17,083 feet)',
     budgetLevel: 'HIGH',
     bestTimeTags: ['SUMMER', 'AUTUMN'],
