@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Logo } from "./Logo";
 
 interface FooterLink {
@@ -18,7 +21,9 @@ const FOOTER_LINKS: FooterLink[] = [
 const SOCIAL_PLACEHOLDERS = ["Instagram", "YouTube", "Contact"];
 
 export function Footer() {
+  const pathname = usePathname();
   const year = new Date().getFullYear();
+  if (pathname.startsWith("/place/")) return null;
 
   return (
     <footer className="mt-20 border-t border-line/25 bg-forest text-dock-text">

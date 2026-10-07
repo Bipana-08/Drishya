@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import type { MouseEvent } from "react";
+import { usePathname } from "next/navigation";
 import { Logo } from "./Logo";
 import { ThemeToggle } from "./ThemeToggle";
 
 /** Nav entries. `soon` renders as a quiet, non-interactive dock item. */
 const ITEMS = [
-  { label: "Map", href: "/" },
+  { label: "Map", href: "/map" },
   { label: "Blog", href: "/blog" },
   { label: "Guide", href: "/guide-connect" },
   { label: "Assistant", soon: true },
@@ -31,8 +32,11 @@ function closeMobileMenu(event: MouseEvent<HTMLElement>) {
  * keep their first row clear of the pill.
  */
 export function Header() {
+  const pathname = usePathname();
+  if (pathname.startsWith("/place/")) return null;
+
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-[var(--dock-top)] z-50 flex justify-center px-3 sm:px-4">
+    <div className="pointer-events-none fixed inset-x-0 top-[var(--dock-top)] z-[100] flex justify-center px-3 sm:px-4">
       <header className="dock pointer-events-auto flex h-[var(--dock-h)] w-full max-w-4xl items-center justify-between rounded-full pl-3 pr-1.5 sm:pl-5 sm:pr-3">
         <Logo href="/#top" />
 
